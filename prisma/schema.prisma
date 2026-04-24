@@ -1,0 +1,144 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+// Since prisma 6 is used, you can either configure driver adapters or standard postgres.
+// Prisma Postgres is the default setup in V6 init.
+datasource db {
+  provider = "postgresql"
+}
+
+// -------------------------
+// Better Auth Core Schema
+// -------------------------
+model User {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  emailVerified  Boolean   @default(false)
+  image          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  sessions       Session[]
+  accounts       Account[]
+  
+  // Custom App Fields
+  role           String    @default("USER") // USER, ADMIN
+  
+  stripeCustomerId String?
+  subscriptionId   String?
+  subscriptionStatus String?
+  
+  charityId      String?
+  charity        Charity?  @relation(fields: [charityId], references: [id])
+  charityPercentage Int?   @default(10) // Between 10 and 100
+  
+  scores         Score[]
+  winnings       Winnings[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// -------------------------
+// Application Schema
+// -------------------------
+
+model Score {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date  // One score per date
+  value     Int      // Stableford 1-45
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, date])
+}
+
+model Charity {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  active      Boolean  @default(true)
+  users       User[]
+  createdAt   DateTime @default(now())
+}
+
+model Draw {
+  id          String   @id @default(cuid())
+  month       DateTime @db.Date
+  executedAt  DateTime @default(now())
+  isPublished Boolean  @default(false)
+  numbers     Int[]    // Array of 5 numbers for the draw
+  prizePool   PrizePool?
+}
+
+model PrizePool {
+  id          String   @id @default(cuid())
+  drawId      String   @unique
+  draw        Draw     @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  totalAmount Float
+  
+  match3Share Float    // 25%
+  match4Share Float    // 35%
+  match5Share Float    // 40%
+  
+  rolledOver  Boolean  @default(false)
+  
+  winnings    Winnings[]
+}
+
+model Winnings {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prizePoolId String
+  prizePool   PrizePool @relation(fields: [prizePoolId], references: [id], onDelete: Cascade)
+  
+  matchType   Int      // 3, 4, or 5
+  amount      Float
+  
+  status      String   @default("PENDING") // PENDING, ADMIN_REVIEW, PAID, REJECTED
+  proofImage  String?  // Storage bucket URL for the admin to review
+  
+  createdAt   DateTime @default(now())
+}
