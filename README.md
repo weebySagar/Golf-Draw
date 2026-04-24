@@ -114,6 +114,12 @@ To handle subscription status changes, follow these steps:
    - `invoice.payment_succeeded`
 4. Once saved, Stripe will provide a **Signing Secret** (starting with `whsec_`). Add this to your `.env` as `STRIPE_WEBHOOK_SECRET`.
 
+### Testing Payments
+To test the subscription flow, use the [Stripe Test Cards](https://docs.stripe.com/testing#cards). 
+- **Standard Card**: `4242 4242 4242 4242`
+- **Expiry**: Any future date
+- **CVC**: Any 3 digits
+
 ### Supabase Storage
 Create a public bucket named `winnings` to store user-uploaded proof images.
 
