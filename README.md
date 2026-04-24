@@ -94,7 +94,7 @@ The app will be available at `http://localhost:3000`.
 
 ### Database
 1. Ensure your production PostgreSQL database is accessible.
-2. Run `npx prisma migrate deploy` in your CI/CD pipeline.
+2. The `npm run build` script is configured to automatically run `prisma migrate deploy`. This ensures your database schema is up-to-date before Next.js attempts to prerender any static pages.
 
 ### Next.js
 Build the production bundle:
